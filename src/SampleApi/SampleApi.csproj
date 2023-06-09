@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Sample.Api</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <OpenApiController Include="../v1.yaml">
+      <BaseClassPrefix>Forecast</BaseClassPrefix>
+      <RelativeNamespace>V1</RelativeNamespace>
+    </OpenApiController>
+    <OpenApiController Include="../v2.yaml">
+      <BaseClassPrefix>Forecast</BaseClassPrefix>
+      <RelativeNamespace>V2</RelativeNamespace>
+    </OpenApiController>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="NSwag.MSBuild" Version="13.19.0"/>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3"/>
+    <PackageReference Include="AutoMapper" Version="12.0.1"/>
+    <PackageReference Include="AutoMapper.Extensions.Microsoft.DependencyInjection" Version="12.0.1"/>
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="6.0.16"/>
+  </ItemGroup>
+</Project>
