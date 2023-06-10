@@ -1,47 +1,65 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Project>
     <Target Name="PrepareOpenApiItems">
-        <ItemGroup>
-            <_PreparedOpenApiController Include="@(OpenApiController)">
-                <Namespace>$(RootNamespace).Controllers.%(RelativeNamespace)</Namespace>
-                <OutDir>Controllers/%(RelativeNamespace)</OutDir>
-                <OutFile>Controllers/%(RelativeNamespace)/%(BaseClassPrefix)ControllerBase.g.cs</OutFile>
-            </_PreparedOpenApiController>
-        </ItemGroup>
-    </Target>
-
-    <Target Name="GenerateOpenApiControllers" BeforeTargets="BeforeBuild"
-            DependsOnTargets="PrepareOpenApiItems" Inputs="$(NSwagDir_Net60)/dotnet-nswag.dll;@(_PreparedOpenApiController)"
-            Outputs="@(_PreparedOpenApiController->'%(OutFile)')">
-        <Message Importance="Normal" Text="Generate controllers for OpenAPI(s) @(_PreparedOpenApiController) ..." />
-
         <PropertyGroup>
-            <NSwagArgs>/ControllerStyle:abstract</NSwagArgs>
-            <NSwagArgs>$(NSwagArgs) /UseActionResultType:true</NSwagArgs>
-            <NSwagArgs>$(NSwagArgs) /GenerateModelValidationAttributes:true</NSwagArgs>
-            <NSwagArgs>$(NSwagArgs) /GenerateJsonMethods:false</NSwagArgs>
-            <NSwagArgs>$(NSwagArgs) /RequiredPropertiesMustBeDefined:true</NSwagArgs>
-            <NSwagArgs>$(NSwagArgs) /GenerateOptionalPropertiesAsNullable:true</NSwagArgs>
-            <NSwagArgs>$(NSwagArgs) /GenerateNullableReferenceTypes:true</NSwagArgs>
+            <NSwagControllerArgs>openapi2cscontroller</NSwagControllerArgs>
+            <NSwagControllerArgs>$(NSwagControllerArgs) /ControllerStyle:abstract</NSwagControllerArgs>
+            <NSwagControllerArgs>$(NSwagControllerArgs) /UseActionResultType:true</NSwagControllerArgs>
+            <NSwagControllerArgs>$(NSwagControllerArgs) /GenerateModelValidationAttributes:true</NSwagControllerArgs>
+            <NSwagControllerArgs>$(NSwagControllerArgs) /GenerateJsonMethods:false</NSwagControllerArgs>
+            <NSwagControllerArgs>$(NSwagControllerArgs) /RequiredPropertiesMustBeDefined:true</NSwagControllerArgs>
+            <NSwagControllerArgs>$(NSwagControllerArgs) /GenerateOptionalPropertiesAsNullable:true</NSwagControllerArgs>
+            <NSwagControllerArgs>$(NSwagControllerArgs) /GenerateNullableReferenceTypes:true</NSwagControllerArgs>
+
+            <NSwagClientArgs>openapi2csclient</NSwagClientArgs>
+            <NSwagClientArgs>$(NSwagClientArgs) /GenerateClientInterfaces:true</NSwagClientArgs>
+            <NSwagClientArgs>$(NSwagClientArgs) /ClientClassAccessModifier:internal</NSwagClientArgs>
+            <NSwagClientArgs>$(NSwagClientArgs) /GenerateJsonMethods:false</NSwagClientArgs>
         </PropertyGroup>
 
         <ItemGroup>
-            <_GenerateOpenApiController Include="@(_PreparedOpenApiController)">
-                <Args>/Namespace:%(Namespace) /Input:%(Identity) /Output:%(OutFile) /ClassName:%(BaseClassPrefix)</Args>
-            </_GenerateOpenApiController>
+            <_PreparedOpenApiController Include="@(OpenApiController)">
+                <Namespace>$(RootNamespace).Controllers.%(RelativeNamespace)</Namespace>
+                <OutDir>Controllers/$([System.String]::Copy('%(RelativeNamespace)').Replace('.','/'))</OutDir>
+                <OutFile>Controllers/$([System.String]::Copy('%(RelativeNamespace)').Replace('.','/'))/%(BaseClassPrefix)ControllerBase.g.cs</OutFile>
+            </_PreparedOpenApiController>
+
+            <_PreparedOpenApiClient Include="@(OpenApiClient)">
+                <Namespace>$(RootNamespace).%(RelativeNamespace)</Namespace>
+                <OutDir>$([System.String]::Copy('%(RelativeNamespace)').Replace('.','/'))</OutDir>
+                <OutFile>$([System.String]::Copy('%(RelativeNamespace)').Replace('.','/'))/%(ClassName).g.cs</OutFile>
+            </_PreparedOpenApiClient>
         </ItemGroup>
 
-        <MakeDir Directories="%(_PreparedOpenApiController.OutDir)" />
-        <Exec WorkingDirectory="$(ProjectDir)"
-              Command="$(NSwagExe_Net60) openapi2cscontroller $(NSwagArgs) %(_GenerateOpenApiController.Args)" />
-
         <ItemGroup>
-            <Compile Include="%(_PreparedOpenApiController.OutFile)" KeepDuplicates="false" />
+            <_PreparedOpenApiItem Include="@(_PreparedOpenApiController)">
+                <Args>$(NSwagControllerArgs) /Namespace:%(Namespace) /Input:%(Identity) /Output:%(OutFile) /ClassName:%(BaseClassPrefix)</Args>
+            </_PreparedOpenApiItem>
+
+            <_PreparedOpenApiItem Include="@(_PreparedOpenApiClient)">
+                <Args>$(NSwagClientArgs) /Namespace:%(Namespace) /Input:%(Identity) /Output:%(OutFile) /ClassName:%(_PreparedOpenApiClient.ClassName)</Args>
+            </_PreparedOpenApiItem>
         </ItemGroup>
     </Target>
 
-    <Target Name="CleanupGeneratedOpenApiControllers" BeforeTargets="Clean"
+    <Target Name="GenerateOpenApiCode" BeforeTargets="BeforeBuild"
+            DependsOnTargets="PrepareOpenApiItems"
+            Inputs="$(NSwagDir_Net60)/dotnet-nswag.dll;@(_PreparedOpenApiItem)"
+            Outputs="%(_PreparedOpenApiItem.OutFile)">
+        <Message Importance="Normal"
+                 Text="Generate code for OpenAPI(s) @(_PreparedOpenApiItem) ..." />
+
+        <MakeDir Directories="%(_PreparedOpenApiItem.OutDir)" />
+        <Exec WorkingDirectory="$(ProjectDir)"
+              Command="$(NSwagExe_Net60) %(_PreparedOpenApiItem.Args)" />
+
+        <ItemGroup>
+            <Compile Include="%(_PreparedOpenApiItem.OutFile)" KeepDuplicates="false" />
+        </ItemGroup>
+    </Target>
+
+    <Target Name="CleanupGeneratedOpenApiCode" BeforeTargets="Clean"
             DependsOnTargets="PrepareOpenApiItems">
-        <Delete Files="%(_PreparedOpenApiController.OutFile)" />
+        <Delete Files="%(_PreparedOpenApiItem.OutFile)" />
     </Target>
 </Project>
